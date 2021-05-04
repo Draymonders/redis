@@ -2377,6 +2377,7 @@ void beforeSleep(struct aeEventLoop *eventLoop) {
     handleBlockedClientsTimeout();
 
     /* We should handle pending reads clients ASAP after event loop. */
+    // 多线程读取客户端socket数据
     handleClientsWithPendingReadsUsingThreads();
 
     /* Handle TLS pending data. (must be done before flushAppendOnlyFile) */
@@ -2442,6 +2443,7 @@ void beforeSleep(struct aeEventLoop *eventLoop) {
         flushAppendOnlyFile(0);
 
     /* Handle writes with pending output buffers. */
+    // 多线程写客户端socket数据
     handleClientsWithPendingWritesUsingThreads();
 
     /* Close clients that need to be closed asynchronous */
@@ -3915,6 +3917,7 @@ static int cmdHasMovableKeys(struct redisCommand *cmd) {
  * If C_OK is returned the client is still alive and valid and
  * other operations can be performed by the caller. Otherwise
  * if C_ERR is returned the client was destroyed (i.e. after QUIT). */
+// 处理命令
 int processCommand(client *c) {
     moduleCallCommandFilters(c);
 

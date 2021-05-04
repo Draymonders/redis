@@ -108,6 +108,7 @@ static void clientSetDefaultAuth(client *c) {
 }
 
 client *createClient(connection *conn) {
+    // 创建client对象c
     client *c = zmalloc(sizeof(client));
 
     /* passing NULL as conn it is possible to create a non connected client.
@@ -120,6 +121,7 @@ client *createClient(connection *conn) {
         if (server.tcpkeepalive)
             connKeepAlive(conn,server.tcpkeepalive);
         connSetReadHandler(conn, readQueryFromClient);
+        // 将client对象c绑定到conn上，后续回调会用
         connSetPrivateData(conn, c);
     }
 
@@ -2084,6 +2086,7 @@ void processInputBuffer(client *c) {
                 break;
             }
 
+            // 处理命令并且重置客户端状态
             /* We are finally ready to execute the command. */
             if (processCommandAndResetClient(c) == C_ERR) {
                 /* If the client is no longer valid, we avoid exiting this
@@ -2102,6 +2105,7 @@ void processInputBuffer(client *c) {
 }
 
 void readQueryFromClient(connection *conn) {
+    // conn的privateData是 createClient方法构造的client对象
     client *c = connGetPrivateData(conn);
     int nread, readlen;
     size_t qblen;
@@ -2133,6 +2137,7 @@ void readQueryFromClient(connection *conn) {
     qblen = sdslen(c->querybuf);
     if (c->querybuf_peak < qblen) c->querybuf_peak = qblen;
     c->querybuf = sdsMakeRoomFor(c->querybuf, readlen);
+    // 读取socket数据，先转换为sds类型
     nread = connRead(c->conn, c->querybuf+qblen, readlen);
     if (nread == -1) {
         if (connGetState(conn) == CONN_STATE_CONNECTED) {
@@ -3379,6 +3384,7 @@ static inline void setIOPendingCount(int i, unsigned long count) {
     atomicSetWithSync(io_threads_pending[i], count);
 }
 
+// IO多线程执行核心
 void *IOThreadMain(void *myid) {
     /* The ID is the thread number (from 0 to server.iothreads_num-1), and is
      * used by the thread to just manipulate a single sub-array of clients. */
@@ -3645,6 +3651,7 @@ int handleClientsWithPendingReadsUsingThreads(void) {
     }
 
     /* Also use the main thread to process a slice of clients. */
+    // 当前ln只获取 io_threads_list[0]的任务
     listRewind(io_threads_list[0],&li);
     while((ln = listNext(&li))) {
         client *c = listNodeValue(ln);
